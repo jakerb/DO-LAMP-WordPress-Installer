@@ -1,0 +1,58 @@
+<?php
+
+// Check Webserver is Apache
+if( strpos( $_SERVER['SERVER_SOFTWARE'], 'Apache') !== false)  {
+	echo "Cannot run installer, this is not an Apache server.\n";
+	exit();
+}
+
+// Let's get Started
+echo "Do you want to set up a domain name? (yes/no)";
+$input = trim(strtolower(fgets(fopen("php://stdin","r"))));
+if(in_array($input, array('y', 'yes'))) { 
+
+	echo "Ok, what is the domain name (enter domain only, e.g. my-site.com)\n";
+
+	$input = trim(strtolower(fgets(fopen("php://stdin","r"))));
+	$domain = $input;
+
+	if(!checkdnsrr($domain , "A")) {
+		echo "The domain you provided is not valid!\n";
+		exit();
+	}
+
+	$vhosts = '/etc/apache2/sites-available/';
+	$find = 'DocumentRoot /var/www/html';
+	$replace = $find . "\n        ServerName $domain";
+	$default_vhost = "000-default.conf";
+	$new_vhost = "{$domain}.conf";
+
+	if(!file_exists($vhosts . $default_vhost)) {
+		echo "Cannot find default vhost file ($default_vhost)!\n";
+		exit();
+	}
+
+	$save_vhost = file_put_contents(
+		$vhosts . $new_vhost,
+		str_replace($find, $replace, file_get_contents($vhosts . $default_vhost))
+	);
+
+	if(!$save_vhost) {
+		echo "Could not save the new vhost file for $domain!\n";
+		exit();
+	}
+}
+
+// Install dependencies
+echo "Updating server and installing dependencies\n";
+echo shell_exec("sudo apt-get update && sudo apt-get install zip unzip php-zip php-mbstring php-xml php-curl");
+
+// Install WordPress
+echo "In order to install WordPress I need to delete the existing html folder (/var/www/html) is that OK? (yes/no)";
+$input = trim(strtolower(fgets(fopen("php://stdin","r"))));
+if(in_array($input, array('y', 'yes'))) {
+echo shell_exec("cd /var/www && rm -rf html && mkdir html && cd html && wget https://wordpress.org/latest.zip && unzip latest.zip && rm latest.zip && cd wordpress && mv * ../ && cd ../ && rm -r wordpress");
+echo "Successfully setup a WordPress site! Happy blogging.\n";
+}
+
+exit();
