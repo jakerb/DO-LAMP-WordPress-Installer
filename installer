@@ -34,7 +34,13 @@ if(in_array($input, array('y', 'yes'))) {
 
 	$save_vhost = file_put_contents(
 		$vhosts . $new_vhost,
-		str_replace($find, $replace, file_get_contents($vhosts . $default_vhost))
+		str_replace($find, $replace, file_get_contents($vhosts . $default_vhost));
+		echo shell_exec("sudo a2ensite $new_vhost && service apache2 restart");
+		echo "Would you like me to secure this domain with an SSL certificate? (yes/no)";
+		$input = trim(strtolower(fgets(fopen("php://stdin","r"))));
+		if(in_array($input, array('y', 'yes'))) {
+			echo shell_exec("sudo apt-get update && sudo apt-get install -y certbot && ");
+		}
 	);
 
 	if(!$save_vhost) {
